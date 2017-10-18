@@ -18,6 +18,8 @@ void sleep(unsigned long ms) {
 void setup() {
 	pinMode(13, OUTPUT);
 	pixels.begin();
+	pixels.setPixelColor(0, pixels.Color(0,0,1));
+	pixels.show();
 }
 
 void loop() {
@@ -26,8 +28,4 @@ void loop() {
 	digitalWrite(13, LOW);
 	sleep(1925);
 							
-	digitalWrite(13, LOW);		
-	pixels.setPixelColor(0, pixels.Color(0,0,0));
-	pixels.show();
-	delay(1000);							
 }

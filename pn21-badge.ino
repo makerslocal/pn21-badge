@@ -41,6 +41,7 @@ void fireflyFlash() {
 	sleep(fireflyPhaseDuration);
 }
 void fireflyShowPhaseLed(void) {
+	if (!DEBUG) return; //Don't do all this battery-using stuff if we're not in debug
 	//light LED for this phase
 	CircuitPlayground.setBrightness(fireflyBright);
 	for(i=0;i<=fireflyPhases;i++) {
@@ -81,8 +82,7 @@ void setup() {
 	CircuitPlayground.begin();
 	CircuitPlayground.irReceiver.enableIRIn();
 
-	pinMode(13, OUTPUT);
-	CircuitPlayground.setPixelColor(0, 0,0,1);
+	Serial.println("booted");
 }
 
 void loop() {
@@ -96,9 +96,11 @@ void loop() {
 	}
 
 	//Pilot
-	digitalWrite(13, HIGH);
-	sleep(75);
-	digitalWrite(13, LOW);
+	if ( DEBUG or Serial ) {
+		CircuitPlaygorund.redLED(true);
+		sleep(75);
+		CircuitPlaygorund.redLED(false);
+	}
 
 	//Firefly
 	// Strategy: 

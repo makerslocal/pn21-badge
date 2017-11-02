@@ -38,7 +38,7 @@ void fireflyFlash() {
 		CircuitPlayground.setPixelColor(i, 255, 255,0);
 	}
 
-	delay(fireflyPhaseDuration);
+	sleep(fireflyPhaseDuration);
 }
 void fireflyShowPhaseLed(void) {
 	//light LED for this phase
@@ -99,7 +99,6 @@ void loop() {
 	digitalWrite(13, HIGH);
 	sleep(75);
 	digitalWrite(13, LOW);
-	sleep(1925);
 
 	//Firefly
 	// Strategy: 
@@ -110,13 +109,13 @@ void loop() {
 		// this is our phase to flash at. Let's go!
 		fireflyFlash();
 		CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
-		delay(fireflyPhaseDuration);
+		sleep(fireflyPhaseDuration);
 	}
 	else{
 		// Not our fireflyFlashAtPhase. Show LED.
 		fireflyShowPhaseLed();
 		CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
-		delay(fireflyPhaseDuration);
+		sleep(fireflyPhaseDuration);
 
 		// Did anyone else flash during this phase? If so, change fireflyFlashAtPhase.
 		if (readIr()){

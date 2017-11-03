@@ -7,17 +7,18 @@
 #define NUM_LEDS 10
 #define IR_BITS 32
 
-#define DEBUG true
+#define DEBUG false
 
 // Constants
 int16_t fireflyBright = 8;
 int16_t fireflyPhaseDuration = 300; // delay this long between phases
 uint8_t fireflyPhases = 10; // We have 10 different phases, 1 for each LED
+int fadeValues [] = { 255, 230, 200, 150, 100, 50, 10 };
 
 // Variables
 uint8_t fireflyCurrentPhase = 0;
 uint8_t fireflyFlashAtPhase = 5;
-uint8_t i,j;
+int i,j;
 
 uint8_t myId = 255;
 
@@ -36,22 +37,34 @@ void fireflyFlash() {
 
 	// light all the LEDs
 	CircuitPlayground.setBrightness(fireflyBright);
-	for(i=0;i<fireflyPhases;i++) {
-		CircuitPlayground.setPixelColor(i, 255, 255,0);
+	for ( j=6; j>=0; j-- ) {
+		sleep(20);
+		setAllPixelsColor(fadeValues[j],fadeValues[j],0);
 	}
-
-	sleep(fireflyPhaseDuration);
+	for ( j=0; j<=6; j++ ) {
+		sleep(20);
+		setAllPixelsColor(fadeValues[j],fadeValues[j],0);
+	}
+}
+void setAllPixelsColor(uint8_t r, uint8_t g, uint8_t b) {
+	for ( int x=0; x<NUM_LEDS; x++ ) {
+		CircuitPlayground.setPixelColor(x, r,g,b);
+	}
 }
 void fireflyShowPhaseLed(void) {
-	if (!DEBUG) return; //Don't do all this battery-using stuff if we're not in debug
-	//light LED for this phase
-	CircuitPlayground.setBrightness(fireflyBright);
-	for(i=0;i<=fireflyPhases;i++) {
-		if(i==fireflyCurrentPhase) {
-			CircuitPlayground.setPixelColor(i, 255,0,0);
-		} else	{
-			CircuitPlayground.setPixelColor(i, 0,0,0);
+	if (DEBUG) {
+		//light LED for this phase
+		CircuitPlayground.setBrightness(fireflyBright);
+		for(i=0;i<=fireflyPhases;i++) {
+			if(i==fireflyCurrentPhase) {
+				CircuitPlayground.setPixelColor(i, 255,0,0);
+			} else	{
+				CircuitPlayground.setPixelColor(i, 0,0,0);
+			}
 		}
+	} else {
+		//Don't do all this battery-using stuff if we're not in debug
+		//CircuitPlayground.clearPixels(); //FIXME - if we fade out the blip we don't need this
 	}
 }
 bool readIr(){

@@ -10,9 +10,9 @@
 #define IR_BITS 32
 #define FIDGET_AXIS CircuitPlayground.motionX()
 #define FIDGET_INVERT_AXIS true
-#define DEBUG false
+#define DEBUG true
 
-enum Mode { UPRIGHT, TABLE, FACE_DOWN, OTHER };
+enum Mode { UPRIGHT, FACE_UP, FACE_DOWN, OTHER };
 typedef struct {
   uint32_t primary;
   uint32_t secondary;
@@ -233,7 +233,7 @@ void loop() {
   if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 3 ) {
     detectedMode = UPRIGHT;
   } else if ( event.acceleration.z > 5 ) {
-    detectedMode = TABLE;
+    detectedMode = FACE_UP;
   } else if ( event.acceleration.z < -5 ) {
     detectedMode = FACE_DOWN;
   } else {
@@ -280,7 +280,7 @@ void loop() {
     }
     // increment phase
     fireflyCurrentPhase = (fireflyCurrentPhase + 1) % fireflyPhases;
-  } else if ( currentMode == TABLE ) {
+  } else if ( currentMode == FACE_UP ) {
     //Fidget
     if ( CircuitPlayground.rightButton() ) {
       currentColor = (currentColor + 1) % (sizeof(fidgetColors)/sizeof(colorCombo));

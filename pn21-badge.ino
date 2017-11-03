@@ -230,15 +230,7 @@ void loop() {
 		Serial.print(','); Serial.println(event.acceleration.z);
 	}
 	if ( abs(event.acceleration.y) > 5 ) {
-		int average = 0;
-		for ( int x = 0; x < 100; x++ ) {
-			CircuitPlayground.lis.getEvent(&event);
-			average += event.acceleration.y;
-		}
-		average = abs(average / 100);
-		if ( average > 5 ) {
-			detectedMode = UPRIGHT;
-		}
+		detectedMode = UPRIGHT;
 	} else if ( event.acceleration.z > 5 ) {
 		detectedMode = TABLE;
 	} else if ( event.acceleration.z < -5 ) {

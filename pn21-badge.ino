@@ -35,7 +35,6 @@ int fadeValues [] = { 255, 230, 200, 150, 100, 50, 10 };
 
 // Variables
 uint8_t fireflyCurrentPhase = 0;
-uint8_t fireflyFlashAtPhase = 5;
 int i,j;
 uint8_t myId = 255;
 Mode proposedMode = OTHER;
@@ -258,7 +257,7 @@ void loop() {
 		// If we see another firefly flash when we're not, change our fireflyFlashAtPhase randomly
 		// If we don't see another firefly flash, or we're already in sync, don't change our fireflyFlashAtPhase.
 
-		if (fireflyCurrentPhase == fireflyFlashAtPhase) {
+		if (!fireflyCurrentPhase) {
 			// this is our phase to flash at. Let's go!
 			fireflyFlash();
 			CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
@@ -272,7 +271,7 @@ void loop() {
 	
 			// Did anyone else flash during this phase? If so, change fireflyFlashAtPhase.
 			if (readIr()){
-				fireflyFlashAtPhase = (fireflyFlashAtPhase + random(0, 5)) % fireflyPhases; // Change flash_at randomly
+				fireflyCurrentPhase += fireflyCurrentPhase < fireflyPhases/2 ? -1 : 1;
 			}
 		}
 		// increment phase

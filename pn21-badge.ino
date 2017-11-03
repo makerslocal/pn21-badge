@@ -3,15 +3,31 @@
 #include <FlashAsEEPROM.h>
 
 #include "adafruit_mini_codes.h"
+#include "FidgetSpinner.h"
+#include "PeakDetector.h"
 
 #define NUM_LEDS 10
 #define IR_BITS 32
-
+#define FIDGET_AXIS CircuitPlayground.motionX()
+#define FIDGET_INVERT_AXIS true
 #define DEBUG false
 
-// Constants
 enum Mode { UPRIGHT, TABLE, FACE_DOWN, OTHER };
-
+typedef struct {
+	uint32_t primary;
+	uint32_t secondary;
+} colorCombo;
+colorCombo fidgetColors[] = {
+  { .primary = 0x960031, .secondary = 0x080808 },
+  { .primary = 0xFF0000, .secondary = 0x000000 },  // Red to black
+  { .primary = 0x00FF00, .secondary = 0x000000 },  // Green to black
+  { .primary = 0x0000FF, .secondary = 0x000000 },  // Blue to black
+  { .primary = 0xFF0000, .secondary = 0x00FF00 },  // Red to green
+  { .primary = 0xFF0000, .secondary = 0x0000FF },  // Red to blue
+  { .primary = 0x00FF00, .secondary = 0x0000FF }   // Green to blue
+};
+PeakDetector peakDetector(30, 20.0, 0.1);
+FidgetSpinner fidgetSpinner(0.8);
 int16_t fireflyBright = 8;
 int16_t fireflyPhaseDuration = 300; // delay this long between phases
 uint8_t fireflyPhases = 10; // We have 10 different phases, 1 for each LED
@@ -26,6 +42,11 @@ Mode proposedMode = OTHER;
 Mode detectedMode = OTHER;
 Mode currentMode = OTHER;
 sensors_event_t event;
+uint32_t lastMS = millis();
+uint32_t peakDebounce = 0;
+uint32_t buttonDebounce = 0;
+int currentAnimation = 3;
+int currentColor = 0;
 
 void sleep(unsigned long ms) {
 	if ( millis() < 10000 || Serial ) {
@@ -95,6 +116,81 @@ bool readIr(){
 
 	return false;
 }
+void fillPixels(const uint32_t color) {
+  // Set all the pixels on CircuitPlayground to the specified color.
+  for (int i=0; i<CircuitPlayground.strip.numPixels();++i) {
+    CircuitPlayground.strip.setPixelColor(i, color);
+  }
+}
+
+float constrainPosition(const float pos) {
+  // Take a continuous positive or negative value and map it to its relative positon
+  // within the range 0...<10 (so it's valid as an index to CircuitPlayground pixel
+  // position).
+  float result = fmod(pos, CircuitPlayground.strip.numPixels());
+  if (result < 0.0) {
+    result += CircuitPlayground.strip.numPixels();
+  }
+  return result;
+}
+
+float lerp(const float x, const float x0, const float x1, const float y0, const float y1) {
+  // Linear interpolation of value y within y0...y1 given x and range x0...x1.
+  return y0 + (x-x0)*((y1-y0)/(x1-x0));
+}
+
+uint32_t primaryColor() {
+  return fidgetColors[currentColor].primary;
+}
+uint32_t secondaryColor() {
+  return fidgetColors[currentColor].secondary;
+}
+
+uint32_t colorLerp(const float x, const float x0, const float x1, const uint32_t c0, const uint32_t c1) {
+  // Perform linear interpolation of 24-bit RGB color values.
+  // Will return a color within the range of c0...c1 proportional to the value x within x0...x1.
+  uint8_t r0 = (c0 >> 16) & 0xFF;
+  uint8_t g0 = (c0 >> 8) & 0xFF;
+  uint8_t b0 = c0 & 0xFF;
+  uint8_t r1 = (c1 >> 16) & 0xFF;
+  uint8_t g1 = (c1 >> 8) & 0xFF;
+  uint8_t b1 = c1 & 0xFF;
+  uint32_t r = int(lerp(x, x0, x1, r0, r1));
+  uint32_t g = int(lerp(x, x0, x1, g0, g1));
+  uint32_t b = int(lerp(x, x0, x1, b0, b1));
+  return (r << 16) | (g << 8) | b;
+}
+
+// Animation functions:
+void animateDots(float pos, int count) {
+  // Simple discrete dot animation.  Spins dots around the board based on the specified
+  // spinner position.  Count specifies how many dots to display, each one equally spaced
+  // around the pixels (in practice any count that 10 isn't evenly divisible by will look odd).
+  // Count should be from 1 to 10 (inclusive)!
+  fillPixels(secondaryColor());
+  // Compute each dot's position and turn on the appropriate pixel.
+  for (int i=0; i<count; ++i) {
+    float dotPos = constrainPosition(pos + i*(float(CircuitPlayground.strip.numPixels())/float(count)));
+    CircuitPlayground.strip.setPixelColor(int(dotPos), primaryColor());
+  }
+  CircuitPlayground.strip.show();
+}
+
+void animateSine(float pos, float frequency) {
+  // Smooth sine wave animation.  Sweeps a sine wave of primary to secondary color around
+  // the board pixels based on the specified spinner position.
+  // Compute phase based on spinner position.  As the spinner position changes the phase will
+  // move the sine wave around the pixels.
+  float phase = 2.0*PI*(constrainPosition(pos)/10.0);
+  for (int i=0; i<CircuitPlayground.strip.numPixels();++i) {
+    // Use a sine wave to compute the value of each pixel based on its position for time
+    // (and offset by the global phase that depends on fidget spinner position).
+    float x = sin(2.0*PI*frequency*(i/10.0)+phase);
+    CircuitPlayground.strip.setPixelColor(i, colorLerp(x, -1.0, 1.0, primaryColor(), secondaryColor()));
+  }
+  CircuitPlayground.strip.show();
+}
+
 
 
 void setup() {
@@ -109,6 +205,7 @@ void setup() {
 	Serial.print("My ID is "); Serial.println(myId);
 
 	CircuitPlayground.begin();
+	CircuitPlayground.setAccelRange(LIS3DH_RANGE_16_G);
 	CircuitPlayground.irReceiver.enableIRIn();
 
 	Serial.println("booted");
@@ -127,9 +224,21 @@ void loop() {
 
 	//Mode change
 	CircuitPlayground.lis.getEvent(&event);
-	Serial.print("Orientation: "); Serial.print(event.acceleration.x); Serial.print(','); Serial.print(event.acceleration.y); Serial.print(','); Serial.println(event.acceleration.z);
+	if ( DEBUG ) {
+		Serial.print("Orientation: "); Serial.print(event.acceleration.x); 
+		Serial.print(','); Serial.print(event.acceleration.y); 
+		Serial.print(','); Serial.println(event.acceleration.z);
+	}
 	if ( abs(event.acceleration.y) > 5 ) {
-		detectedMode = UPRIGHT;
+		int average = 0;
+		for ( int x = 0; x < 100; x++ ) {
+			CircuitPlayground.lis.getEvent(&event);
+			average += event.acceleration.y;
+		}
+		average = abs(average / 100);
+		if ( average > 5 ) {
+			detectedMode = UPRIGHT;
+		}
 	} else if ( event.acceleration.z > 5 ) {
 		detectedMode = TABLE;
 	} else if ( event.acceleration.z < -5 ) {
@@ -138,40 +247,88 @@ void loop() {
 	if ( detectedMode != currentMode && detectedMode == proposedMode ) {
 		currentMode = detectedMode;
 		Serial.println("Mode changed");
-	} else {
+	} else if ( detectedMode != currentMode ) {
 		proposedMode = detectedMode;
 	}
 
 	//Pilot
 	if ( DEBUG or Serial ) {
 		CircuitPlayground.redLED(true);
-		sleep(75);
+		sleep(5);
 		CircuitPlayground.redLED(false);
 	}
 
-	//Firefly
-	// Strategy: 
-	// If we see another firefly flash when we're not, change our fireflyFlashAtPhase randomly
-	// If we don't see another firefly flash, or we're already in sync, don't change our fireflyFlashAtPhase.
+	if ( currentMode == UPRIGHT ) {
+		//Firefly
+		// Strategy: 
+		// If we see another firefly flash when we're not, change our fireflyFlashAtPhase randomly
+		// If we don't see another firefly flash, or we're already in sync, don't change our fireflyFlashAtPhase.
 
-	if (fireflyCurrentPhase == fireflyFlashAtPhase) {
-		// this is our phase to flash at. Let's go!
-		fireflyFlash();
-		CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
-		sleep(fireflyPhaseDuration);
-	}
-	else{
-		// Not our fireflyFlashAtPhase. Show LED.
-		fireflyShowPhaseLed();
-		CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
-		sleep(fireflyPhaseDuration);
-
-		// Did anyone else flash during this phase? If so, change fireflyFlashAtPhase.
-		if (readIr()){
-			fireflyFlashAtPhase = (fireflyFlashAtPhase + random(0, 5)) % fireflyPhases; // Change flash_at randomly
+		if (fireflyCurrentPhase == fireflyFlashAtPhase) {
+			// this is our phase to flash at. Let's go!
+			fireflyFlash();
+			CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
+			sleep(fireflyPhaseDuration);
 		}
+		else{
+			// Not our fireflyFlashAtPhase. Show LED.
+			fireflyShowPhaseLed();
+			CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
+			sleep(fireflyPhaseDuration);
+	
+			// Did anyone else flash during this phase? If so, change fireflyFlashAtPhase.
+			if (readIr()){
+				fireflyFlashAtPhase = (fireflyFlashAtPhase + random(0, 5)) % fireflyPhases; // Change flash_at randomly
+			}
+		}
+		// increment phase
+		fireflyCurrentPhase = (fireflyCurrentPhase + 1) % fireflyPhases;
+	} else if ( currentMode == TABLE ) {
+		//Fidget
+		if ( CircuitPlayground.rightButton() ) {
+			currentColor = (currentColor + 1) % (sizeof(fidgetColors)/sizeof(colorCombo));
+		}
+		uint32_t currentMS = millis();
+		uint32_t deltaMS = currentMS - lastMS;  // Time in milliseconds.
+		float deltaS = deltaMS / 1000.0;        // Time in seconds.
+		lastMS = currentMS;
+
+		// Grab the current accelerometer axis value and look for a sudden peak.
+		float accel = FIDGET_AXIS;
+		int result = peakDetector.detect(accel);
+
+		if ((result != 0) && (currentMS >= peakDebounce)) {
+			peakDebounce = currentMS + 500;
+			// Invert accel because accelerometer axis positive/negative is flipped
+			// with respect to pixel positive/negative movement.
+			if (FIDGET_INVERT_AXIS) {
+				fidgetSpinner.spin(-accel);
+			} else {
+				fidgetSpinner.spin(accel);
+			}
+		}
+		// Update the spinner position and draw the current animation frame.
+		float pos = fidgetSpinner.getPosition(deltaS);
+		switch (currentAnimation) {
+			case 0:
+				// Single dot.
+				animateDots(pos, 1);
+				break;
+			case 1:
+				// Two opposite dots.
+				animateDots(pos, 2);
+				break;
+			case 2:
+				// Sine wave with one peak.
+				animateSine(pos, 1.0);
+				break;
+			case 3:
+				// Sine wave with two peaks.
+				animateSine(pos, 2.0);
+				break;
+		}
+
+
 	}
-	// increment phase
-	fireflyCurrentPhase = (fireflyCurrentPhase + 1) % fireflyPhases;
 }
 

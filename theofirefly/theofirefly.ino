@@ -64,7 +64,7 @@ void flash() {
   // light all the LEDs
   CircuitPlayground.setBrightness(Bright);
   for(i=0;i<N_phases;i++) {
-    CircuitPlayground.setPixelColor(i, 255, 255,0);
+    //CircuitPlayground.setPixelColor(i, 255, 255,0);
   }
 
   delay(Phase_duration);

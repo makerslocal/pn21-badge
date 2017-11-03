@@ -58,7 +58,8 @@ void sleep(unsigned long ms) {
 void fireflyFlash() {
   // Send an IR signal
   CircuitPlayground.irSend.send(NEC, ADAF_MINI_1, IR_BITS); // what should IR_bits be set to??
-  CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
+
+  //if ( DEBUG ) return;
 
   // light all the LEDs
   CircuitPlayground.setBrightness(fireflyBright);
@@ -241,6 +242,7 @@ void loop() {
   if ( detectedMode != currentMode && detectedMode == proposedMode ) {
     currentMode = detectedMode;
     Serial.println("Mode changed");
+    CircuitPlayground.clearPixels();
   } else if ( detectedMode != currentMode ) {
     proposedMode = detectedMode;
   }
@@ -261,6 +263,7 @@ void loop() {
     if (!fireflyCurrentPhase) {
       // this is our phase to flash at. Let's go!
       fireflyFlash();
+      delay(100); //ACTUAL DELAY
       CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
       sleep(fireflyPhaseDuration);
     }

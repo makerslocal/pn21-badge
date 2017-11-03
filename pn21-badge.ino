@@ -5,6 +5,8 @@
 #include "adafruit_mini_codes.h"
 #include "FidgetSpinner.h"
 #include "PeakDetector.h"
+//#include "trek.h"
+#include "coin.h"
 
 #define NUM_LEDS 10
 #define IR_BITS 32
@@ -46,6 +48,11 @@ uint32_t peakDebounce = 0;
 uint32_t buttonDebounce = 0;
 int currentAnimation = 3;
 int currentColor = 0;
+volatile boolean play = false;
+
+void setPlay() {
+  play = true;
+}
 
 void sleep(unsigned long ms) {
   if ( millis() < 10000 || Serial ) {
@@ -207,7 +214,9 @@ void setup() {
 
   CircuitPlayground.begin();
   CircuitPlayground.setAccelRange(LIS3DH_RANGE_16_G);
+  CircuitPlayground.setAccelTap(1, 127);
   CircuitPlayground.irReceiver.enableIRIn();
+  attachInterrupt(digitalPinToInterrupt(CPLAY_LIS3DH_INTERRUPT), setPlay, RISING);
 
   Serial.println("booted");
 }
@@ -280,6 +289,13 @@ void loop() {
     }
     // increment phase
     fireflyCurrentPhase = (fireflyCurrentPhase + 1) % fireflyPhases;
+
+    //play sound
+    if ( play ) {
+      CircuitPlayground.speaker.playSound(audio, sizeof(audio), SAMPLE_RATE);
+      play = false;
+    }
+    
   } else if ( currentMode == FACE_UP ) {
     //Fidget
     if ( CircuitPlayground.rightButton() ) {
@@ -326,6 +342,8 @@ void loop() {
     }
 
 
+  } else if ( currentMode == FACE_DOWN ) {
+    CircuitPlayground.clearPixels();
   }
 }
 

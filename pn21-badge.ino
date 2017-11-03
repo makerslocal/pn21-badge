@@ -10,6 +10,8 @@
 #define DEBUG false
 
 // Constants
+enum Mode { UPRIGHT, TABLE, FACE_DOWN, OTHER };
+
 int16_t fireflyBright = 8;
 int16_t fireflyPhaseDuration = 300; // delay this long between phases
 uint8_t fireflyPhases = 10; // We have 10 different phases, 1 for each LED
@@ -19,8 +21,11 @@ int fadeValues [] = { 255, 230, 200, 150, 100, 50, 10 };
 uint8_t fireflyCurrentPhase = 0;
 uint8_t fireflyFlashAtPhase = 5;
 int i,j;
-
 uint8_t myId = 255;
+Mode proposedMode = OTHER;
+Mode detectedMode = OTHER;
+Mode currentMode = OTHER;
+sensors_event_t event;
 
 void sleep(unsigned long ms) {
 	if ( millis() < 10000 || Serial ) {
@@ -118,6 +123,23 @@ void loop() {
 		Serial.print("My unique ID is "); Serial.println(myId);
 		while ( Serial.read() != -1 ); //empty the receive buffer.
 		Serial.flush(); //wait for all data to be sent.
+	}
+
+	//Mode change
+	CircuitPlayground.lis.getEvent(&event);
+	Serial.print("Orientation: "); Serial.print(event.acceleration.x); Serial.print(','); Serial.print(event.acceleration.y); Serial.print(','); Serial.println(event.acceleration.z);
+	if ( abs(event.acceleration.y) > 5 ) {
+		detectedMode = UPRIGHT;
+	} else if ( event.acceleration.z > 5 ) {
+		detectedMode = TABLE;
+	} else if ( event.acceleration.z < -5 ) {
+		detectedMode = FACE_DOWN;
+	}
+	if ( detectedMode != currentMode && detectedMode == proposedMode ) {
+		currentMode = detectedMode;
+		Serial.println("Mode changed");
+	} else {
+		proposedMode = detectedMode;
 	}
 
 	//Pilot

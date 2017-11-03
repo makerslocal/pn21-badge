@@ -229,12 +229,14 @@ void loop() {
 		Serial.print(','); Serial.print(event.acceleration.y); 
 		Serial.print(','); Serial.println(event.acceleration.z);
 	}
-	if ( abs(event.acceleration.y) > 5 ) {
+	if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 3 ) {
 		detectedMode = UPRIGHT;
 	} else if ( event.acceleration.z > 5 ) {
 		detectedMode = TABLE;
 	} else if ( event.acceleration.z < -5 ) {
 		detectedMode = FACE_DOWN;
+	} else {
+		detectedMode = OTHER;
 	}
 	if ( detectedMode != currentMode && detectedMode == proposedMode ) {
 		currentMode = detectedMode;

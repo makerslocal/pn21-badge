@@ -14,8 +14,8 @@
 
 enum Mode { UPRIGHT, TABLE, FACE_DOWN, OTHER };
 typedef struct {
-	uint32_t primary;
-	uint32_t secondary;
+  uint32_t primary;
+  uint32_t secondary;
 } colorCombo;
 colorCombo fidgetColors[] = {
   { .primary = 0x960031, .secondary = 0x080808 },
@@ -48,73 +48,73 @@ int currentAnimation = 3;
 int currentColor = 0;
 
 void sleep(unsigned long ms) {
-	if ( millis() < 10000 || Serial ) {
-		//Either we haven't been running for long, or we are connected to a PC.
-		delay(ms);
-	} else {
-		Watchdog.sleep(ms);
-	}
+  if ( millis() < 10000 || Serial ) {
+    //Either we haven't been running for long, or we are connected to a PC.
+    delay(ms);
+  } else {
+    Watchdog.sleep(ms);
+  }
 }
 void fireflyFlash() {
-	// Send an IR signal
-	CircuitPlayground.irSend.send(NEC, ADAF_MINI_1, IR_BITS); // what should IR_bits be set to??
-	CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
+  // Send an IR signal
+  CircuitPlayground.irSend.send(NEC, ADAF_MINI_1, IR_BITS); // what should IR_bits be set to??
+  CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
 
-	// light all the LEDs
-	CircuitPlayground.setBrightness(fireflyBright);
-	for ( j=6; j>=0; j-- ) {
-		sleep(20);
-		setAllPixelsColor(fadeValues[j],fadeValues[j],0);
-	}
-	for ( j=0; j<=6; j++ ) {
-		sleep(20);
-		setAllPixelsColor(fadeValues[j],fadeValues[j],0);
-	}
+  // light all the LEDs
+  CircuitPlayground.setBrightness(fireflyBright);
+  for ( j=6; j>=0; j-- ) {
+    sleep(20);
+    setAllPixelsColor(fadeValues[j],fadeValues[j],0);
+  }
+  for ( j=0; j<=6; j++ ) {
+    sleep(20);
+    setAllPixelsColor(fadeValues[j],fadeValues[j],0);
+  }
 }
 void setAllPixelsColor(uint8_t r, uint8_t g, uint8_t b) {
-	for ( int x=0; x<NUM_LEDS; x++ ) {
-		CircuitPlayground.setPixelColor(x, r,g,b);
-	}
+  for ( int x=0; x<NUM_LEDS; x++ ) {
+    CircuitPlayground.setPixelColor(x, r,g,b);
+  }
 }
 void fireflyShowPhaseLed(void) {
-	if (DEBUG) {
-		//light LED for this phase
-		CircuitPlayground.setBrightness(fireflyBright);
-		for(i=0;i<=fireflyPhases;i++) {
-			if(i==fireflyCurrentPhase) {
-				CircuitPlayground.setPixelColor(i, 255,0,0);
-			} else	{
-				CircuitPlayground.setPixelColor(i, 0,0,0);
-			}
-		}
-	} else {
-		//Don't do all this battery-using stuff if we're not in debug
-		//CircuitPlayground.clearPixels(); //FIXME - if we fade out the blip we don't need this
-	}
+  if (DEBUG) {
+    //light LED for this phase
+    CircuitPlayground.setBrightness(fireflyBright);
+    for(i=0;i<=fireflyPhases;i++) {
+      if(i==fireflyCurrentPhase) {
+        CircuitPlayground.setPixelColor(i, 255,0,0);
+      } else  {
+        CircuitPlayground.setPixelColor(i, 0,0,0);
+      }
+    }
+  } else {
+    //Don't do all this battery-using stuff if we're not in debug
+    //CircuitPlayground.clearPixels(); //FIXME - if we fade out the blip we don't need this
+  }
 }
 bool readIr(){
-	// Not sure of the logic here, CHECK PLZ
-	// Did we get at least one IR signal?
-	if (! CircuitPlayground.irReceiver.getResults()) {
-		return false;
-	}
+  // Not sure of the logic here, CHECK PLZ
+  // Did we get at least one IR signal?
+  if (! CircuitPlayground.irReceiver.getResults()) {
+    return false;
+  }
 
-	// Did we get any decodable messages?
-	if (! CircuitPlayground.irDecoder.decode()) {
-		return false;
-	}
+  // Did we get any decodable messages?
+  if (! CircuitPlayground.irDecoder.decode()) {
+    return false;
+  }
 
-	// We can print out the message if we want...
-	CircuitPlayground.irDecoder.dumpResults(false);
+  // We can print out the message if we want...
+  CircuitPlayground.irDecoder.dumpResults(false);
 
-	// What message did we get?
-	switch(CircuitPlayground.irDecoder.value) {
-	case ADAF_MINI_1:
-		Serial.println("Got IR firefly signal");
-		return true;
-	}
+  // What message did we get?
+  switch(CircuitPlayground.irDecoder.value) {
+  case ADAF_MINI_1:
+    Serial.println("Got IR firefly signal");
+    return true;
+  }
 
-	return false;
+  return false;
 }
 void fillPixels(const uint32_t color) {
   // Set all the pixels on CircuitPlayground to the specified color.
@@ -194,135 +194,135 @@ void animateSine(float pos, float frequency) {
 
 
 void setup() {
-	Serial.begin(115200);
-	Serial.println("starting boot");
+  Serial.begin(115200);
+  Serial.println("starting boot");
 
-	myId = EEPROM.read(1);
-	while ( myId == 255 or myId == 0 ) {
-		myId = random(1, 254);
-		EEPROM.write(1, myId);
-	}
-	Serial.print("My ID is "); Serial.println(myId);
+  myId = EEPROM.read(1);
+  while ( myId == 255 or myId == 0 ) {
+    myId = random(1, 254);
+    EEPROM.write(1, myId);
+  }
+  Serial.print("My ID is "); Serial.println(myId);
 
-	CircuitPlayground.begin();
-	CircuitPlayground.setAccelRange(LIS3DH_RANGE_16_G);
-	CircuitPlayground.irReceiver.enableIRIn();
+  CircuitPlayground.begin();
+  CircuitPlayground.setAccelRange(LIS3DH_RANGE_16_G);
+  CircuitPlayground.irReceiver.enableIRIn();
 
-	Serial.println("booted");
+  Serial.println("booted");
 }
 
 void loop() {
-	//Serial
-	if ( Serial.read() != -1 ) { 
-		//someone sent us anything
-		Serial.println("PhreakNIC 21 Badge by shapr and hfuller - https://github.com/makerslocal/pn21-badge");
-		Serial.println("There are no commands available via serial (yet?). Patches welcome!");
-		Serial.print("My unique ID is "); Serial.println(myId);
-		while ( Serial.read() != -1 ); //empty the receive buffer.
-		Serial.flush(); //wait for all data to be sent.
-	}
+  //Serial
+  if ( Serial.read() != -1 ) {
+    //someone sent us anything
+    Serial.println("PhreakNIC 21 Badge by shapr and hfuller - https://github.com/makerslocal/pn21-badge");
+    Serial.println("There are no commands available via serial (yet?). Patches welcome!");
+    Serial.print("My unique ID is "); Serial.println(myId);
+    while ( Serial.read() != -1 ); //empty the receive buffer.
+    Serial.flush(); //wait for all data to be sent.
+  }
 
-	//Mode change
-	CircuitPlayground.lis.getEvent(&event);
-	if ( DEBUG ) {
-		Serial.print("Orientation: "); Serial.print(event.acceleration.x); 
-		Serial.print(','); Serial.print(event.acceleration.y); 
-		Serial.print(','); Serial.println(event.acceleration.z);
-	}
-	if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 3 ) {
-		detectedMode = UPRIGHT;
-	} else if ( event.acceleration.z > 5 ) {
-		detectedMode = TABLE;
-	} else if ( event.acceleration.z < -5 ) {
-		detectedMode = FACE_DOWN;
-	} else {
-		detectedMode = OTHER;
-	}
-	if ( detectedMode != currentMode && detectedMode == proposedMode ) {
-		currentMode = detectedMode;
-		Serial.println("Mode changed");
-	} else if ( detectedMode != currentMode ) {
-		proposedMode = detectedMode;
-	}
+  //Mode change
+  CircuitPlayground.lis.getEvent(&event);
+  if ( DEBUG ) {
+    Serial.print("Orientation: "); Serial.print(event.acceleration.x);
+    Serial.print(','); Serial.print(event.acceleration.y);
+    Serial.print(','); Serial.println(event.acceleration.z);
+  }
+  if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 3 ) {
+    detectedMode = UPRIGHT;
+  } else if ( event.acceleration.z > 5 ) {
+    detectedMode = TABLE;
+  } else if ( event.acceleration.z < -5 ) {
+    detectedMode = FACE_DOWN;
+  } else {
+    detectedMode = OTHER;
+  }
+  if ( detectedMode != currentMode && detectedMode == proposedMode ) {
+    currentMode = detectedMode;
+    Serial.println("Mode changed");
+  } else if ( detectedMode != currentMode ) {
+    proposedMode = detectedMode;
+  }
 
-	//Pilot
-	if ( DEBUG or Serial ) {
-		CircuitPlayground.redLED(true);
-		sleep(5);
-		CircuitPlayground.redLED(false);
-	}
+  //Pilot
+  if ( DEBUG or Serial ) {
+    CircuitPlayground.redLED(true);
+    sleep(5);
+    CircuitPlayground.redLED(false);
+  }
 
-	if ( currentMode == UPRIGHT ) {
-		//Firefly
-		// Strategy: 
-		// If we see another firefly flash when we're not, change our fireflyFlashAtPhase randomly
-		// If we don't see another firefly flash, or we're already in sync, don't change our fireflyFlashAtPhase.
+  if ( currentMode == UPRIGHT ) {
+    //Firefly
+    // Strategy:
+    // If we see another firefly flash when we're not, change our fireflyFlashAtPhase randomly
+    // If we don't see another firefly flash, or we're already in sync, don't change our fireflyFlashAtPhase.
 
-		if (!fireflyCurrentPhase) {
-			// this is our phase to flash at. Let's go!
-			fireflyFlash();
-			CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
-			sleep(fireflyPhaseDuration);
-		}
-		else{
-			// Not our fireflyFlashAtPhase. Show LED.
-			fireflyShowPhaseLed();
-			CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
-			sleep(fireflyPhaseDuration);
-	
-			// Did anyone else flash during this phase? If so, change fireflyFlashAtPhase.
-			if (readIr()){
-				fireflyCurrentPhase += fireflyCurrentPhase < fireflyPhases/2 ? -1 : 1;
-			}
-		}
-		// increment phase
-		fireflyCurrentPhase = (fireflyCurrentPhase + 1) % fireflyPhases;
-	} else if ( currentMode == TABLE ) {
-		//Fidget
-		if ( CircuitPlayground.rightButton() ) {
-			currentColor = (currentColor + 1) % (sizeof(fidgetColors)/sizeof(colorCombo));
-		}
-		uint32_t currentMS = millis();
-		uint32_t deltaMS = currentMS - lastMS;  // Time in milliseconds.
-		float deltaS = deltaMS / 1000.0;        // Time in seconds.
-		lastMS = currentMS;
+    if (!fireflyCurrentPhase) {
+      // this is our phase to flash at. Let's go!
+      fireflyFlash();
+      CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
+      sleep(fireflyPhaseDuration);
+    }
+    else{
+      // Not our fireflyFlashAtPhase. Show LED.
+      fireflyShowPhaseLed();
+      CircuitPlayground.irReceiver.enableIRIn(); //reset receiver
+      sleep(fireflyPhaseDuration);
 
-		// Grab the current accelerometer axis value and look for a sudden peak.
-		float accel = FIDGET_AXIS;
-		int result = peakDetector.detect(accel);
+      // Did anyone else flash during this phase? If so, change fireflyFlashAtPhase.
+      if (readIr()){
+        fireflyCurrentPhase += fireflyCurrentPhase < fireflyPhases/2 ? -1 : 1;
+      }
+    }
+    // increment phase
+    fireflyCurrentPhase = (fireflyCurrentPhase + 1) % fireflyPhases;
+  } else if ( currentMode == TABLE ) {
+    //Fidget
+    if ( CircuitPlayground.rightButton() ) {
+      currentColor = (currentColor + 1) % (sizeof(fidgetColors)/sizeof(colorCombo));
+    }
+    uint32_t currentMS = millis();
+    uint32_t deltaMS = currentMS - lastMS;  // Time in milliseconds.
+    float deltaS = deltaMS / 1000.0;        // Time in seconds.
+    lastMS = currentMS;
 
-		if ((result != 0) && (currentMS >= peakDebounce)) {
-			peakDebounce = currentMS + 500;
-			// Invert accel because accelerometer axis positive/negative is flipped
-			// with respect to pixel positive/negative movement.
-			if (FIDGET_INVERT_AXIS) {
-				fidgetSpinner.spin(-accel);
-			} else {
-				fidgetSpinner.spin(accel);
-			}
-		}
-		// Update the spinner position and draw the current animation frame.
-		float pos = fidgetSpinner.getPosition(deltaS);
-		switch (currentAnimation) {
-			case 0:
-				// Single dot.
-				animateDots(pos, 1);
-				break;
-			case 1:
-				// Two opposite dots.
-				animateDots(pos, 2);
-				break;
-			case 2:
-				// Sine wave with one peak.
-				animateSine(pos, 1.0);
-				break;
-			case 3:
-				// Sine wave with two peaks.
-				animateSine(pos, 2.0);
-				break;
-		}
+    // Grab the current accelerometer axis value and look for a sudden peak.
+    float accel = FIDGET_AXIS;
+    int result = peakDetector.detect(accel);
+
+    if ((result != 0) && (currentMS >= peakDebounce)) {
+      peakDebounce = currentMS + 500;
+      // Invert accel because accelerometer axis positive/negative is flipped
+      // with respect to pixel positive/negative movement.
+      if (FIDGET_INVERT_AXIS) {
+        fidgetSpinner.spin(-accel);
+      } else {
+        fidgetSpinner.spin(accel);
+      }
+    }
+    // Update the spinner position and draw the current animation frame.
+    float pos = fidgetSpinner.getPosition(deltaS);
+    switch (currentAnimation) {
+      case 0:
+        // Single dot.
+        animateDots(pos, 1);
+        break;
+      case 1:
+        // Two opposite dots.
+        animateDots(pos, 2);
+        break;
+      case 2:
+        // Sine wave with one peak.
+        animateSine(pos, 1.0);
+        break;
+      case 3:
+        // Sine wave with two peaks.
+        animateSine(pos, 2.0);
+        break;
+    }
 
 
-	}
+  }
 }
 

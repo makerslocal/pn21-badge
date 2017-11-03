@@ -110,6 +110,7 @@ bool readIr(){
 	// What message did we get?
 	switch(CircuitPlayground.irDecoder.value) {
 	case ADAF_MINI_1:
+		Serial.println("Got IR firefly signal");
 		return true;
 	}
 

@@ -8,6 +8,7 @@
 //#include "trek.h"
 #include "coin.h"
 
+#define VERSION 4
 #define NUM_LEDS 10
 #define IR_BITS 32
 #define FIDGET_AXIS CircuitPlayground.motionX()
@@ -213,7 +214,7 @@ void setup() {
   Serial.print("My ID is "); Serial.println(myId);
 
   CircuitPlayground.begin();
-  CircuitPlayground.setAccelRange(LIS3DH_RANGE_16_G);
+  CircuitPlayground.setAccelRange(LIS3DH_RANGE_4_G);
   CircuitPlayground.setAccelTap(1, 127);
   CircuitPlayground.irReceiver.enableIRIn();
   attachInterrupt(digitalPinToInterrupt(CPLAY_LIS3DH_INTERRUPT), setPlay, RISING);
@@ -239,7 +240,8 @@ void loop() {
     Serial.print(','); Serial.print(event.acceleration.y);
     Serial.print(','); Serial.println(event.acceleration.z);
   }
-  if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 10 ) {
+  if ( ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 10 )
+     ) {
     detectedMode = UPRIGHT;
   } else if ( event.acceleration.z > 5 ) {
     detectedMode = FACE_UP;
@@ -294,9 +296,10 @@ void loop() {
     if ( play ) {
       if ( CircuitPlayground.slideSwitch() ) {
         CircuitPlayground.speaker.playSound(audio, sizeof(audio), SAMPLE_RATE);
+        CircuitPlayground.speaker.end();
       } else {
         CircuitPlayground.redLED(true);
-        sleep(1000);
+        sleep(50);
         CircuitPlayground.redLED(false);
       }
       play = false;

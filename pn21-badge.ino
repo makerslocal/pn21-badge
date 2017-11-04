@@ -12,7 +12,7 @@
 #define IR_BITS 32
 #define FIDGET_AXIS CircuitPlayground.motionX()
 #define FIDGET_INVERT_AXIS true
-#define DEBUG true
+#define DEBUG false
 
 enum Mode { UPRIGHT, FACE_UP, FACE_DOWN, OTHER };
 typedef struct {
@@ -239,7 +239,7 @@ void loop() {
     Serial.print(','); Serial.print(event.acceleration.y);
     Serial.print(','); Serial.println(event.acceleration.z);
   }
-  if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 3 ) {
+  if ( abs(event.acceleration.y) > 5 && abs(event.acceleration.x) < 3 && abs(event.acceleration.z) < 10 ) {
     detectedMode = UPRIGHT;
   } else if ( event.acceleration.z > 5 ) {
     detectedMode = FACE_UP;
@@ -292,7 +292,13 @@ void loop() {
 
     //play sound
     if ( play ) {
-      CircuitPlayground.speaker.playSound(audio, sizeof(audio), SAMPLE_RATE);
+      if ( CircuitPlayground.slideSwitch() ) {
+        CircuitPlayground.speaker.playSound(audio, sizeof(audio), SAMPLE_RATE);
+      } else {
+        CircuitPlayground.redLED(true);
+        sleep(1000);
+        CircuitPlayground.redLED(false);
+      }
       play = false;
     }
     

@@ -342,8 +342,9 @@ void loop() {
     }
 
 
-  } else if ( currentMode == FACE_DOWN ) {
+  } else { //if ( currentMode == FACE_DOWN ) {
     CircuitPlayground.clearPixels();
+    sleep(100);
   }
 }
 
